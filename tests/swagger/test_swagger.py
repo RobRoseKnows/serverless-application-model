@@ -10,12 +10,12 @@ from samtranslator.swagger.swagger import SwaggerEditor
 _X_INTEGRATION = "x-amazon-apigateway-integration"
 _X_ANY_METHOD = 'x-amazon-apigateway-any-method'
 
-class TestSwaggerEditor_init(TestCase):
+class TestSwaggerEditor_init(object):
 
     def test_must_raise_on_invalid_swagger(self):
 
         invalid_swagger = {"paths": {}} # Missing "Swagger" keyword
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             SwaggerEditor(invalid_swagger)
 
     def test_must_succeed_on_valid_swagger(self):
@@ -28,15 +28,20 @@ class TestSwaggerEditor_init(TestCase):
         }
 
         editor = SwaggerEditor(valid_swagger)
-        self.assertIsNotNone(editor)
+        assert editor is not None
 
-        self.assertEquals(editor.paths, {"/foo": {}, "/bar": {}})
+        assert editor.paths == {"/foo": {}, "/bar": {}}
 
 
-class TestSwaggerEditor_has_path(TestCase):
+class TestSwaggerEditor_has_path(object):
 
-    def setUp(self):
-        self.swagger = {
+    # This fixture is scoped to the class because the editor is the same at the
+    # beginning of each of the tests in this class, we don't need to create a
+    # fresh editor everytime. Autouse is also set to True to emulate the setUp()
+    # behavior.
+    @pytest.fixture(scope='class', autouse=True)
+    def editor(self):
+        swagger_def = {
             "swagger": "2.0",
             "paths": {
                 "/foo": {
@@ -51,51 +56,54 @@ class TestSwaggerEditor_has_path(TestCase):
             }
         }
 
-        self.editor = SwaggerEditor(self.swagger)
+        return SwaggerEditor(swagger_def)
 
     def test_must_find_path_and_method(self):
-        self.assertTrue(self.editor.has_path("/foo"))
-        self.assertTrue(self.editor.has_path("/foo", "get"))
-        self.assertTrue(self.editor.has_path("/foo", "somemethod"))
-        self.assertTrue(self.editor.has_path("/bar"))
-        self.assertTrue(self.editor.has_path("/bar", "post"))
+        assert editor.has_path("/foo")
+        assert editor.has_path("/foo", "get")
+        assert editor.has_path("/foo", "somemethod")
+        assert editor.has_path("/bar")
+        assert editor.has_path("/bar", "post")
 
     def test_must_find_with_method_case_insensitive(self):
-        self.assertTrue(self.editor.has_path("/foo", "GeT"))
-        self.assertTrue(self.editor.has_path("/bar", "POST"))
+        assert editor.has_path("/foo", "GeT")
+        assert editor.has_path("/bar", "POST")
 
         # Only Method is case insensitive. Path is case sensitive
-        self.assertFalse(self.editor.has_path("/FOO"))
+        assert not editor.has_path("/FOO")
 
     def test_must_work_with_any_method(self):
         """
         Method name "ANY" is special. It must be converted to the x-amazon style value before search
         """
-        self.assertTrue(self.editor.has_path("/bar", "any"))
-        self.assertTrue(self.editor.has_path("/bar", "AnY")) # Case insensitive
-        self.assertTrue(self.editor.has_path("/bar", _X_ANY_METHOD))
-        self.assertFalse(self.editor.has_path("/foo", "any"))
+        assert editor.has_path("/bar", "any")
+        assert editor.has_path("/bar", "AnY") # Case insensitive
+        assert editor.has_path("/bar", _X_ANY_METHOD)
+        assert not editor.has_path("/foo", "any")
 
     def test_must_not_find_path(self):
-        self.assertFalse(self.editor.has_path("/foo/other"))
-        self.assertFalse(self.editor.has_path("/bar/xyz"))
-        self.assertFalse(self.editor.has_path("/abc"))
+        assert not editor.has_path("/foo/other")
+        assert not editor.has_path("/bar/xyz")
+        assert not editor.has_path("/abc")
 
     def test_must_not_find_path_and_method(self):
-        self.assertFalse(self.editor.has_path("/foo", "post"))
-        self.assertFalse(self.editor.has_path("/foo", "abc"))
-        self.assertFalse(self.editor.has_path("/bar", "get"))
-        self.assertFalse(self.editor.has_path("/bar", "xyz"))
+        assert not editor.has_path("/foo", "post")
+        assert not editor.has_path("/foo", "abc")
+        assert not editor.has_path("/bar", "get")
+        assert not editor.has_path("/bar", "xyz")
 
     def test_must_not_fail_on_bad_path(self):
+        assert editor.has_path("badpath")
+        assert not editor.has_path("badpath", "somemethod")
 
-        self.assertTrue(self.editor.has_path("badpath"))
-        self.assertFalse(self.editor.has_path("badpath", "somemethod"))
+class TestSwaggerEditor_has_integration(object):
 
-class TestSwaggerEditor_has_integration(TestCase):
-
-    def setUp(self):
-        self.swagger = {
+    # This fixture is scoped to the class since it will be the same throughout
+    # each of the tests in this class. Autouse is also set to true to emulate
+    # the setUp() behavior.
+    @pytest.fixture(scope='class', autouse=True)
+    def editor(self):
+        swagger_def = {
             "swagger": "2.0",
             "paths": {
                 "/foo": {
@@ -115,24 +123,27 @@ class TestSwaggerEditor_has_integration(TestCase):
             }
         }
 
-        self.editor = SwaggerEditor(self.swagger)
+        return SwaggerEditor(swagger_def)
 
     def test_must_find_integration(self):
-        self.assertTrue(self.editor.has_integration("/foo", "get"))
+        assert editor.has_integration("/foo", "get")
 
     def test_must_not_find_integration(self):
-        self.assertFalse(self.editor.has_integration("/foo", "somemethod"))
+        assert not editor.has_integration("/foo", "somemethod")
 
     def test_must_not_find_empty_integration(self):
-        self.assertFalse(self.editor.has_integration("/foo", "emptyintegration"))
+        assert not editor.has_integration("/foo", "emptyintegration")
 
     def test_must_handle_bad_value_for_method(self):
-        self.assertFalse(self.editor.has_integration("/foo", "badmethod"))
+        assert not editor.has_integration("/foo", "badmethod")
 
 
-class TestSwaggerEditor_add_path(TestCase):
+class TestSwaggerEditor_add_path(object):
 
-    def setUp(self):
+    # This fixture is scoped to the function since the editor is being modified
+    # each of the tests.
+    @pytest.fixture(scope='function', autouse=True)
+    def editor(self):
 
         self.original_swagger = {
             "swagger": "2.0",
@@ -145,7 +156,7 @@ class TestSwaggerEditor_add_path(TestCase):
             }
         }
 
-        self.editor = SwaggerEditor(self.original_swagger)
+        return SwaggerEditor(self.original_swagger)
 
     @pytest.mark.parametrize("path, method, case", [
         ("/new", "get", "new path, new method"),
@@ -154,19 +165,19 @@ class TestSwaggerEditor_add_path(TestCase):
     ])
     def test_must_add_new_path_and_method(self, path, method, case):
 
-        self.assertFalse(self.editor.has_path(path, method))
+        assert not editor.has_path(path, method)
         self.editor.add_path(path, method)
 
-        self.assertTrue(self.editor.has_path(path, method), "must add for "+case)
-        self.assertEquals(self.editor.swagger["paths"][path][method], {})
+        assert editor.has_path(path, method)
+        assert editor.swagger["paths"][path][method] == {}
 
     def test_must_raise_non_dict_path_values(self):
 
         path = "/badpath"
         method = "get"
 
-        with self.assertRaises(ValueError):
-            self.editor.add_path(path, method)
+        with pytest.raises(ValueError):
+            editor.add_path(path, method)
 
     def test_must_skip_existing_path(self):
         """
@@ -178,14 +189,18 @@ class TestSwaggerEditor_add_path(TestCase):
         method = "get"
         original_value = copy.deepcopy(self.original_swagger["paths"][path][method])
 
-        self.editor.add_path(path, method)
-        modified_swagger = self.editor.swagger
-        self.assertEquals(original_value, modified_swagger["paths"][path][method])
+        editor.add_path(path, method)
+        modified_swagger = editor.swagger
+        assert original_value == modified_swagger["paths"][path][method]
 
 
-class TestSwaggerEditor_add_lambda_integration(TestCase):
+class TestSwaggerEditor_add_lambda_integration(object):
 
-    def setUp(self):
+    # Scope set to function on this fixture because it's modifying the editor
+    # everytime. autouse again set to true to emulate setUp() behavior and
+    # so that we don't have to rewrite `editor` every time.
+    @pytest.fixture(scope='function', autouse=True)
+    def editor(self):
 
         self.original_swagger = {
             "swagger": "2.0",
@@ -208,7 +223,7 @@ class TestSwaggerEditor_add_lambda_integration(TestCase):
             }
         }
 
-        self.editor = SwaggerEditor(self.original_swagger)
+        return SwaggerEditor(self.original_swagger)
 
     def test_must_add_new_integration_to_new_path(self):
         path = "/newpath"
@@ -223,11 +238,11 @@ class TestSwaggerEditor_add_lambda_integration(TestCase):
             }
         }
 
-        self.editor.add_lambda_integration(path, method, integration_uri)
+        editor.add_lambda_integration(path, method, integration_uri)
 
-        self.assertTrue(self.editor.has_path(path, method))
-        actual = self.editor.swagger["paths"][path][method]
-        self.assertEquals(expected, actual)
+        assert editor.has_path(path, method)
+        actual = editor.swagger["paths"][path][method]
+        assert expected == actual
 
     def test_must_add_new_integration_to_existing_path(self):
         path = "/foo"
@@ -251,20 +266,20 @@ class TestSwaggerEditor_add_lambda_integration(TestCase):
         }
 
         # Just make sure test is working on an existing path
-        self.assertTrue(self.editor.has_path(path, method))
+        assert editor.has_path(path, method)
 
-        self.editor.add_lambda_integration(path, method, integration_uri)
+        editor.add_lambda_integration(path, method, integration_uri)
 
-        actual = self.editor.swagger["paths"][path][method]
-        self.assertEquals(expected, actual)
+        actual = editor.swagger["paths"][path][method]
+        assert expected == actual
 
     def test_must_raise_on_existing_integration(self):
 
-        with self.assertRaises(ValueError):
-            self.editor.add_lambda_integration("/bar", "get", "integrationUri")
+        with pytest.raises(ValueError):
+            editor.add_lambda_integration("/bar", "get", "integrationUri")
 
 
-class TestSwaggerEditor_iter_on_path(TestCase):
+class TestSwaggerEditor_iter_on_path(object):
 
     def setUp(self):
 
