@@ -1,11 +1,12 @@
-from parameterized import parameterized
+import pytest
+
 from unittest import TestCase
 
 from samtranslator.model.intrinsics import is_instrinsic, make_shorthand
 
 class TestIntrinsics(TestCase):
 
-    @parameterized.expand([
+    @pytest.mark.parametrize("intrinsic_name", [
         "Ref",
         "Condition",
         "Fn::foo",
@@ -32,7 +33,7 @@ class TestIntrinsics(TestCase):
             "key": "bar"
         }))
 
-    @parameterized.expand([
+    @pytest.mark.parametrize("input, expected", [
         ({"Ref": "foo"}, "${foo}"),
         ({"Fn::GetAtt": ["foo", "Arn"]}, "${foo.Arn}")
     ])

@@ -2,7 +2,8 @@ import copy
 
 from unittest import TestCase
 from mock import Mock
-from parameterized import parameterized, param
+
+import pytest
 
 from samtranslator.swagger.swagger import SwaggerEditor
 
@@ -146,10 +147,10 @@ class TestSwaggerEditor_add_path(TestCase):
 
         self.editor = SwaggerEditor(self.original_swagger)
 
-    @parameterized.expand([
-        param("/new", "get", "new path, new method"),
-        param("/foo", "new method", "existing path, new method"),
-        param("/bar", "get", "existing path, new method"),
+    @pytest.mark.parametrize("path, method, case", [
+        ("/new", "get", "new path, new method"),
+        ("/foo", "new method", "existing path, new method"),
+        ("/bar", "get", "existing path, new method"),
     ])
     def test_must_add_new_path_and_method(self, path, method, case):
 
@@ -577,13 +578,13 @@ class TestSwaggerEditor_make_cors_allowed_methods_for_path(TestCase):
 
 class TestSwaggerEditor_normalize_method_name(TestCase):
 
-    @parameterized.expand([
-        param("GET", "get", "must lowercase"),
-        param("PoST", "post", "must lowercase"),
-        param("ANY", _X_ANY_METHOD, "must convert any method"),
-        param(None, None, "must skip empty values"),
-        param({"a": "b"}, {"a": "b"}, "must skip non-string values"),
-        param([1, 2], [1, 2], "must skip non-string values"),
+    @pytest.mark.parametrize("input, expected, msg", [
+        ("GET", "get", "must lowercase"),
+        ("PoST", "post", "must lowercase"),
+        ("ANY", _X_ANY_METHOD, "must convert any method"),
+        (None, None, "must skip empty values"),
+        ({"a": "b"}, {"a": "b"}, "must skip non-string values"),
+        ([1, 2], [1, 2], "must skip non-string values"),
     ])
     def test_must_normalize(self, input, expected, msg):
         self.assertEquals(expected, SwaggerEditor._normalize_method_name(input), msg)
@@ -610,16 +611,15 @@ class TestSwaggerEditor_swagger_property(TestCase):
 
 class TestSwaggerEditor_is_valid(TestCase):
 
-    @parameterized.expand([
-        param(SwaggerEditor.gen_skeleton()),
-
+    @pytest.mark.parametrize("swagger", [
+        SwaggerEditor.gen_skeleton(),
         # Dict can contain any other unrecognized properties
-        param({"swagger": "anyvalue", "paths": {}, "foo": "bar", "baz": "bar"})
+        {"swagger": "anyvalue", "paths": {}, "foo": "bar", "baz": "bar"}
     ])
     def test_must_work_on_valid_values(self, swagger):
         self.assertTrue(SwaggerEditor.is_valid(swagger))
 
-    @parameterized.expand([
+    @pytest.mark.parametrize("data,case", [
         ({}, "empty dictionary"),
         ([1, 2, 3], "array data type"),
         ({"paths": {}}, "missing swagger property"),

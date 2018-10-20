@@ -14,7 +14,6 @@ from samtranslator.public.plugins import BasePlugin
 
 from tests.translator.helpers import get_template_parameter_values
 from samtranslator.yaml_helper import yaml_parse
-from parameterized import parameterized, param
 
 import pytest
 import yaml
@@ -91,7 +90,7 @@ def custom_list_data_comparator(obj1, obj2):
 
 class TestTranslatorEndToEnd(TestCase):
 
-    @parameterized.expand(
+    @pytest.mark.parametrize("testcase, partition_with_region",
       itertools.product([
         'basic_function',
         'cloudwatchevent',
@@ -611,17 +610,17 @@ class TestParameterValuesHandling(TestCase):
         self.assertEquals(expected, result)
 
 
-    @parameterized.expand([
+    @pytest.mark.parametrize("template_parameters", [
         # Array
-        param(["1", "2"]),
+        ["1", "2"],
 
         # String
-        param("something"),
+        "something",
 
         # Some other non-parameter looking dictionary
-        param({"Param1": {"Foo": "Bar"}}),
+        {"Param1": {"Foo": "Bar"}},
 
-        param(None)
+        None
     ])
     def test_add_default_parameter_values_must_ignore_invalid_template_parameters(self, template_parameters):
         parameter_values = {

@@ -1,6 +1,7 @@
+import pytest
+
 from samtranslator.policy_template_processor.processor import PolicyTemplatesProcessor
 
-from parameterized import parameterized
 from unittest import TestCase
 
 class TestTemplates(object):
@@ -211,7 +212,7 @@ class TestPolicyTemplateSchema(TestCase):
     """
 
     # Grab all variables of the class TestTemplates
-    @parameterized.expand([d for d in dir(TestTemplates) if not d.startswith("__")])
+    @pytest.mark.parametrize(case, [d for d in dir(TestTemplates) if not d.startswith("__")])
     def test_schema(self, case):
 
         failure_case = case.startswith("fail")
