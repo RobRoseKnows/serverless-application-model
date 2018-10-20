@@ -212,7 +212,7 @@ class TestPolicyTemplateSchema(TestCase):
     """
 
     # Grab all variables of the class TestTemplates
-    @pytest.mark.parametrize(case, [d for d in dir(TestTemplates) if not d.startswith("__")])
+    @pytest.mark.parametrize('case', [d for d in dir(TestTemplates) if not d.startswith("__")])
     def test_schema(self, case):
 
         failure_case = case.startswith("fail")
